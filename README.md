@@ -6,7 +6,7 @@ Proyecto en Blazor Server con algunas situaciones comunes para tener de ejemplo.
 - Uso de LocalStorage de forma encriptada
 - Comunicación entre componentes
 - Interacción con Javascript
-- Entre otras cosas
+- Algunos detalles extra
 
 ## Instalación
 
