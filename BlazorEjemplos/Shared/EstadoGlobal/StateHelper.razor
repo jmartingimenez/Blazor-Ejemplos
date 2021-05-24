@@ -1,0 +1,71 @@
+﻿@inject ProtectedLocalStorage ProtectedLocalStore
+@inject AppState AppState
+@implements IDisposable
+
+@if (!hasLoaded)
+{
+    <p>Esto todavía esta cargando...</p>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    //IMPORTANTE: Este componente "envuelve" toda la aplicación. Esto se puede observar en "App.razor"
+
+    //Flag para mostrar o no el contenido
+    private bool hasLoaded = false;
+
+    //Indica el contenido del componente hijo, en este caso es el componente Router (ver App.razor)
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /*Si se quiere acceder a LocalStorage en OnInitialized, es necesario modificar en _Host.cshtml 
+    el atributo render-mode. Cambiandolo de "ServerPrendered" a "Server"*/
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            SubscribeAppState();
+
+            //Revisión de LocalStorage y sincronización para datos de estado
+            var localData = await ProtectedLocalStore.GetAsync<LoginStatus>("userState");
+            if (localData.Success)
+            {
+                LoginStatus loginStatus = localData.Value;
+                if (!AppState.IsLoggedIn)
+                {
+                    AppState.SetIsLoggedIn(loginStatus.UserId);
+                }
+            }
+            else
+            {
+                if (AppState.IsLoggedIn)
+                {
+                    AppState.ClearState();
+                }
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Excepción en StateHelper: " + ex.Message);
+        }
+
+        hasLoaded = true;
+    }
+
+    public void SubscribeAppState()
+    {
+        AppState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}

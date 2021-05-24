@@ -1,0 +1,73 @@
+﻿@page "/localstorage"
+
+@inject ProtectedLocalStorage ProtectedLocalStore
+
+<h3>LocalStorage</h3>
+
+<div class="font-weight-bold my-4">
+    IMPORTANTE: En este ejemplo se usa LocalStorage, pero para aplicar SessionStorage es exactamente igual. 
+    Simplemente se usa <code>ProtectedSessionStorage</code> en lugar de <code>ProtectedLocalStorage</code> 
+    (Inyectado en este componente).
+</div>
+
+<div id="contenedor-ejemplo-localstorage">
+    Pulsando el siguiente botón se crea una clave en localStorage llamada <code>Ejemplo</code> con el valor 
+    <code>Hola Mundo!</code> encriptada. <br />
+
+    <button class="btn btn-success" @onclick="HandleCreateLocalStorage">Crear LocalStorage de ejemplo</button>
+    <button class="btn btn-danger" @onclick="HandleDeleteLocalStorage">Eliminar LocalStorage de ejemplo</button>
+
+    <div id="mensaje-de-accion-sobre-localstorage" class="mt-3 text-info">@mensajeDeAccion</div>
+</div>
+
+@code {
+    //Variable que muestra un mensaje según la acción realizada
+    private string mensajeDeAccion = string.Empty;
+
+    //Método que ejemplifica como obtener la información guardada en localstorage y saber si existe o no
+    private async Task<bool> IsLocalStorageCreated(string key = "Ejemplo")
+    {
+        var localStorage = await ProtectedLocalStore.GetAsync<string>(key);
+
+        //A modo de debug ya que no se muestra en el ejemplo. Así se obtiene el valor desencriptado
+        //Success es true si se encuentra un elemento en localstorage con la clave dada. En este caso "Ejemplo"
+        if (localStorage.Success)
+        {
+            Console.WriteLine(localStorage.Value);
+        }
+
+        return localStorage.Success;
+    }
+
+    //Creación de LocalStorage y seteo de mensaje
+    private async void HandleCreateLocalStorage()
+    {
+        if(await IsLocalStorageCreated())
+        {
+            mensajeDeAccion = "LocalStorage creado previamente. Revisar en navegador o eliminar.";
+        }
+        else
+        {
+            await ProtectedLocalStore.SetAsync("Ejemplo", "Hola Mundo!");
+            mensajeDeAccion = "LocalStorage creado exitosamente.";
+        }
+
+        StateHasChanged();
+    }
+
+    //Eliminación de LocalStorage y seteo de mensaje
+    private async void HandleDeleteLocalStorage()
+    {
+        if(await IsLocalStorageCreated())
+        {
+            await ProtectedLocalStore.DeleteAsync("Ejemplo");
+            mensajeDeAccion = "LocalStorage eliminado exitosamente.";
+        }
+        else
+        {
+            mensajeDeAccion = "No existe LocalStorage. Crear uno primero.";
+        }
+
+        StateHasChanged();
+    }
+}

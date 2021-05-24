@@ -1,0 +1,134 @@
+﻿@page "/comunicacion2"
+
+@inject ComunicacionState ComunicacionState
+@implements IDisposable
+
+<h3>Comunicación 2</h3>
+
+<div id="descripcion-general">
+    <p>
+        Este componente contiene la misma funcionalidad que <NavLink href="comunicacion1">Comunicación 1</NavLink>.
+        La diferencia es que se emplea una lógica totalmente distinta.
+    </p>
+
+    <div id="pasos-comunicación-patron-estado" class="my-3">
+        <div id="paso-comunicacion-patron-estado-1" class="my-2">
+            1) Se debe crear una clase que contenga los datos que se quieren mantener al intercambiar entre páginas o
+            que resulten accesibles a través de distintos componentes. En la carpeta Data se encuentra una clase llamada
+            <code>ComunicacionState</code>. La parte importante de la clase es lo siguiente...<br />
+            La clase cuenta con un setter para el valor a modificar. Esto debido a que cada vez que se quiere
+            realizar una modificación también buscamos volver a renderizar el componente, esto se logra en conjunto con
+            el parámetro de tipo <code>Action</code> y el método <code>NotifyStateChanged()</code>.
+        </div>
+
+        <div id="paso-comunicacion-patron-estado-2" class="my-2">
+            2) Se debe agregar la clase en el <code>Startup.cs</code> dentro del método <code>ConfigureServices</code>
+            para que pueda ser inyectada en los componentes donde se quiera utilizar. En este proyecto se agregó de
+            la siguiente manera: <code>services.AddScoped@("<ComunicacionState, ComunicacionState>();")</code>.
+        </div>
+
+        <div id="paso-comunicacion-patron-estado-3" class="my-2">
+            3) La clase debe ser inyectada en los componentes en los que se quiera utilizar. En este ejemplo se
+            encuentra tanto en este componente, como en el componente hijo. La forma de inyectarla es la siguiente:
+            <code>@("@inject ComunicacionState ComunicacionState")</code>.
+        </div>
+
+        <div id="paso-comunicacion-patron-estado-4" class="my-2">
+            4) El acceso al valor del estado simplemente en este caso se obtiene realizando
+            <code>ComunicacionState.InputValue</code>. Para cambiar el valor se llama al setter realizando
+            <code>ComunicacionState.SetInputValue(nuevoValor)</code>.
+        </div>
+
+        <div id="paso-comunicacion-patron-estado-5" class="my-2">
+            5) Los cambios realizados en el estado se reflejan en todos los componentes donde la clase se
+            encuentra inyectada. Es importante remarcar que modificar el estado no implica renderizar nuevamente el
+            componente desde donde se hace la modificación. Es por esto que la clase tiene el parámetro
+            <code>Action</code> y el método que sirve de trigger para forzar un renderizado.<br />
+            En el código de este ejemplo en particular se verá el uso de <code>StateHasChanged()</code> dentro de la
+            sobrecarga en <code>OnAfterRender()</code>, pero tiene que ver con validaciones en particular de este ejemplo
+            y no con un uso obligatorio.
+        </div>
+    </div>
+</div>
+
+<hr />
+<div class="text-info">Valor de estado: @ComunicacionState.InputValue</div>
+<div class="fecha-ultimo-renderizado">Último renderizado: @DateTime.Now</div>
+
+<div id="contenedor-ejemplo-padre-2" class="mt-4 bg-secondary text-white p-2">
+    <div id="descripcion-componente-padre-2">
+        El primer input se encuentra dentro de este mismo componente. Al pulsar el botón <code>Actualizar</code>, se envia
+        la información a los otros componentes, los cuales tendran en sus inputs el mismo valor.
+    </div>
+    <div id="formulario-componente-padre-2" class="mt-2">
+        <input type="text" id="input-componente-padre-2" @bind="InputTextParentValue" />
+        <button class="btn btn-success ml-2" @onclick="HandleUpdateComunicacionState">Actualizar</button>
+    </div>
+</div>
+
+<hr />
+<div class="text-center mt-2"><h5>Lo que sigue son componentes hijos de este..</h5></div>
+
+<div id="contenedor-ejemplo-hijos-2" class="mt-4 bg-light">
+    <ComponenteHijo2 NombreComponente="A" />
+    <ComponenteHijo2 NombreComponente="B" />
+    <ComponenteHijo2 NombreComponente="C" />
+    <ComponenteHijo2 NombreComponente="D" />
+    <ComponenteHijo2 NombreComponente="E" />
+</div>
+
+@code {
+    //Input que contiene lo que el usuario escribe en el input de este componenente
+    public string InputTextParentValue { get; set; }
+
+    //Variable que contiene el valor del input de este componente una vez el valor se setea (botón Actualizar)
+    public string ParentValue { get; set; }
+
+    //Al presionar el botón, se toma el valor del input y se lo guarda en el estado inyectado
+    public void HandleUpdateComunicacionState()
+    {
+        //Se guarda lo escrito en el estado
+        ComunicacionState.SetInputValue(InputTextParentValue);
+
+        //La variable auxiliar que guarda el valor seteado se setea
+        ParentValue = InputTextParentValue;
+    }
+
+    /*Esto se ejecuta después de cada renderizado. El parámetro firstRender permite ejecutar algo solo la primera vez.
+    El uso en este ejemplo esta relacionado con ciertas validaciones particulares. No siempre sería necesario...
+        - Al cambiar entre vistas y volver se vuelve a setear el valor del input
+        - Al poner un valor en el input distinto al del estado, pero luego actualizar desde de otro componente
+        (el valor toma el nuevo estado)*/
+    protected override void OnAfterRender(bool firstRender)
+    {
+        /*ParentValue se actualizada cada vez que se pulsa el botón actualizar de este componente.
+        Si el valor no coincide con el del estado se lo actualiza (Este caso suele darse al cambiar entre
+        vistas y volver. Ya que al volverse a renderizar los datos del componente se pierden)*/
+        if (ParentValue != ComunicacionState.InputValue && ComunicacionState.InputValue != null)
+        {
+            ParentValue = ComunicacionState.InputValue;
+            InputTextParentValue = ParentValue;
+            StateHasChanged();
+        }
+
+        /*En caso de coincidencia entre el valor seteado en el componente y el estado, pero lo escrito en el
+        input no. Se corrige. Esto suele darse si se modifica el input de este componente, pero se usa el
+        botón "Actualizar" de otro componente. De esta menera se igualan los valores y se mantiene sincronizado.*/
+        if (ParentValue == ComunicacionState.InputValue && ParentValue != InputTextParentValue)
+        {
+            ParentValue = InputTextParentValue;
+        }
+    }
+
+    //Implementación de IDisposable para evitar memory leaks
+    protected override void OnInitialized()
+    {
+        ComunicacionState.OnChange += StateHasChanged;
+    }
+
+    //Implementación de IDisposable para evitar memory leaks
+    public void Dispose()
+    {
+        ComunicacionState.OnChange -= StateHasChanged;
+    }
+}

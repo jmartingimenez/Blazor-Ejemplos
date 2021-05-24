@@ -1,0 +1,91 @@
+﻿@page "/javascript"
+
+@inject IJSRuntime JSRuntime
+
+<h3>Javascript</h3>
+
+Lo siguiente muestra como interactuar entre C# y Javascript. Es necesario inyectar <code>IJSRuntime</code>.
+
+<pre>
+    - El archivo Javascript se encuentra en <code>/wwwrooot/js/ejemploJs.js</code>
+    - El archivo debe referenciarse en <code>_Host.cshtml</code>
+</pre>
+
+<div id="contenedor-ejemplos-javascript" class="mt-4">
+    <div id="ejemplo-alert" class="my-3">
+        <h5>Alert</h5>
+        <button class="btn btn-warning" @onclick="HandleShowAlertFromJs">Mostrar alert desde js</button>
+    </div>
+
+    <div id="ejemplo-escribir-html" class="my-3">
+        <h5>Escribir en Html a través de Js pasando los valores desde C#</h5>
+        <button class="btn btn-info" @onclick="HandleSendAndGetDataFromJs">
+            Enviar @numero1 y @numero2 a Js, y obtener desde allí el resultado
+        </button>
+        <div id="resultado-suma">@resultado</div>
+    </div>
+
+    <div id="ejemplo-crear-referencia-elemento-desde-csharp-enviar-js" class="my-3">
+        <h5>Ejemplo referencia</h5>
+        <div class="my-1">
+            <small>(Se crea una referencia a un elemento Html desde C# y se la envia a Js. La referencia 
+            es el input, desde javascript se hara focus() al presionar el botón)</small>
+        </div>
+
+        <div id="contenedor-input-boton-ejemplo-referencia">
+            <input @ref="inputDeEjemplo" /><br />
+            <button class="btn btn-danger" @onclick="HandleFocusOnInput">Focus en input</button>
+        </div>
+    </div>
+
+    <div id="ejemplos-envio-recepcion-json" class="my-3">
+        <h5>Ejemplos Json </h5>
+        <button class="btn btn-success mb-3" @onclick="HandleGetJsonFromJs">
+            Obtener un Json desde Js y mostrarlo por consola de C#
+        </button><br />
+        <button class="btn btn-outline-success" @onclick="HandleSendJsonToJsAndShowOnConsoleLog">
+            Enviar json desde C# hacia JS y mostrarlo por console.log()
+        </button>
+    </div>
+</div>
+
+@code {
+    private int numero1 = 7;
+    private int numero2 = 19;
+    private string resultado = string.Empty;
+    ElementReference inputDeEjemplo;
+
+    public async Task HandleShowAlertFromJs()
+    {
+        await JSRuntime.InvokeVoidAsync("crearAlerta");
+    }
+
+    public async Task HandleSendAndGetDataFromJs()
+    {
+        resultado = await JSRuntime.InvokeAsync<string>("realizarSuma", numero1, numero2);
+        await JSRuntime.InvokeVoidAsync("agregarTextoEnId", "resultado-suma", resultado);
+    }
+
+    public async Task HandleFocusOnInput()
+    {
+        await JSRuntime.InvokeVoidAsync("focusEnElemento", inputDeEjemplo);
+    }
+
+    public async Task HandleGetJsonFromJs()
+    {
+        var result = await JSRuntime.InvokeAsync<object>("obtenerJson");
+        Console.WriteLine(result);
+    }
+
+    public async Task HandleSendJsonToJsAndShowOnConsoleLog()
+    {
+        var objeto = new
+        {
+            attr1 = "Vengo",
+            attr2 = "de",
+            attr3 = "C#",
+        };
+
+        await JSRuntime.InvokeVoidAsync("mostrarJsonEnConsoleLog", objeto);
+    }
+}

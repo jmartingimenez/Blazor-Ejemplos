@@ -1,0 +1,185 @@
+﻿@page "/entityframework"
+
+@inject IDbContextFactory<BlazorTestContext> ContextFactory
+
+<h3>Entity Framework</h3>
+
+<div class="mt-4" id="paso-1">
+    1 - Asegurarse de tener los siguientes paquetes...
+
+    <code>
+        <pre>
+            - Microsoft.EntityFrameworkCore
+            - Microsoft.EntityFrameworkCore.SqlServer
+            - Microsoft.EntityFrameworkCore.Tools
+        </pre>
+    </code>
+</div>
+
+<div class="mt-4" id="paso-2">
+    2 - Ejecutar scaffolding en "Package Manager Console". Si la solución tiene mas de un proyecto, asegurarse que se
+    selecciona el proyecto correcto donde se agregaran las clases.
+
+    <div class="my-3">
+        El siguiente es un ejemplo de scaffolding para una base de datos a la que se accede con usuario sa.
+        Las entidades generadas se añaden en una carpeta llamada "Models"(reemplazar los valores según corresponda)...
+    </div>
+
+    <code id="ejemplo-scaffolding" class="bg-light">
+        Scaffold-DbContext "Server=DESKTOP-K5FMVBT\SQLEXPRESS;Database=BlazorTest;User Id=Sa;password=Asqlserver;Trusted_Connection=False;MultipleActiveResultSets=true;" Microsoft.EntityFrameworkCore.SqlServer -o Models -f
+    </code>
+</div>
+
+<div class="mt-4" id="paso-3">
+    3 - Se puede agregar la conexión el el appsetings.json... <br />
+
+    <code class="bg-light">
+        "ConnectionStrings": {
+        "DefaultConnection": "Server=DESKTOP-K5FMVBT\\SQLEXPRESS;Database=BlazorTest;User ID=sa;Password=Asqlserver;Trusted_Connection=True;Integrated Security=False"
+        },
+    </code>
+</div>
+
+<div class="mt-4" id="paso-4">
+    4- Agregar lo siguiente en el <code>Startup.cs</code>. Método <code>ConfigureServices()</code>... <br />
+    (Reemplazar por el contexto que corresponda. <code>EnableRetryOnFailure</code> es por si Blazor lo pide
+    ante un error de conexión)<br />
+
+    <code>
+        <pre class="bg-light">
+        services.AddDbContextFactory@("<BlazorTestContext>")(options => {
+            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),
+                sqlServerOptionsAction: sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure();
+                });
+        });
+        </pre>
+    </code>
+
+    <div class="mt-2">
+        Sobre el uso de EntityFramework con Blazor ver los siguientes vídeos para ver consejos.
+        Lo recomendado es que exista un contexto por cada request, el cual viva la menor cantidad de tiempo posible,
+        lo cual se cubre en el primero.
+        El segundo vídeo muestra como tener una capa extra siguiendo esta idea.
+        <div class="my-1">
+            <a href="https://www.youtube.com/watch?v=aaQsmkh1BkQ">
+                Youtube: Using EF Core in Blazor Server the right way
+            </a><br />
+            <a href="https://www.youtube.com/watch?v=PWX0FfVRD1k">
+                Youtube: Repository pattern with EF Core and Blazor Server
+            </a>
+        </div>
+
+        <div class="my-1 font-weight-bold">
+            IMPORTANTE: Blazor parece no soportar multiples constructores en las clases de contexto. Si ocurre
+            una excepción al interactuar con la base de datos, comentar o quitar el consturctor vacío de la clase del
+            contexto agregado.
+        </div>
+    </div>
+</div>
+
+<div class="mt-4" id="paso-5">
+    5 - Un ejemplo práctico. Ver el código de este componente para entenderlo...
+
+    <div class="my-1">
+        Escribir en el input siguiente un número de Id y pulsar el botón "Buscar" para ver el resultado debajo.
+        Si existe un usuario con esa Id, se mostraran varios datos del mismo. En caso contrario, se mostraran datos
+        básicos de todos los usuarios.
+    </div>
+
+    <div class="my-1">
+        @if (mostrarTextoCargando)
+        {
+            <span class="ml-2 font-weight-bold">Cargando...</span>
+        }
+        else
+        {
+            <input type="text" placeholder="1" @bind="textoDelUsuario" />
+            <button class="btn btn-success" @onclick="HandleDatabaseSearch">Buscar en la base de datos</button>
+        }
+
+        @if (busquedaCorrecta != null)
+        {
+            <span class="ml-2 text-@(busquedaCorrecta == true ? "success" : "danger")">
+                @(busquedaCorrecta == true ? "Busqueda válida." : "Busqueda inválida. Pruebe solo números.")
+            </span>
+        }
+    </div>
+
+    @if (busquedaCorrecta == true)
+    {
+        <div id="resultado-busqueda-base-de-datos">
+            @if (usuarioBuscadoPorId != null)
+            {
+                <div id="info-usuario-buscado">
+                    Id: @usuarioBuscadoPorId.Id <br />
+                    Username: @usuarioBuscadoPorId.Username <br />
+                    Nombre: @usuarioBuscadoPorId.Nombre <br />
+                    Apellido: @usuarioBuscadoPorId.Apellido <br />
+                    Rol: @usuarioBuscadoPorId.RolId <br />
+                </div>
+            }
+            else
+            {
+                if (listaDeUsuarios != null)
+                {
+                    foreach (Usuario usuario in listaDeUsuarios)
+                    {
+                        <div>Id: @usuario.Id, Username: @usuario.Username</div>
+                    }
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    //Variable donde se guardara si lo que se escribe en el input es válido o no
+    public bool? busquedaCorrecta = null;
+
+    //Variable bindeada con el input, al escribir en el mismo esta variable va tomando su valor
+    public string textoDelUsuario = string.Empty;
+
+    //Array de usuarios que se mostrará al hacer una busqueda válida sin resultados
+    public Usuario[] listaDeUsuarios;
+
+    //Objeto Usuario que se mostrará al hacer una busqueda válida con resultado
+    public Usuario usuarioBuscadoPorId;
+
+    //Variable para mostrar un simple texto de carga mientras se accede a la base de datos
+    public bool mostrarTextoCargando = false;
+
+    //Función que realiza la busqueda en la base de datos
+    private async void HandleDatabaseSearch()
+    {
+        //No accedo a la base de datos si lo ingresado no es un número
+        bool isNumeric = int.TryParse(textoDelUsuario, out _);
+
+        if (!isNumeric)
+        {
+            busquedaCorrecta = false;
+            return;
+        }
+
+        //Seteo de flags para mensajes
+        busquedaCorrecta = true;
+        mostrarTextoCargando = true;
+
+        //Acceso a la base de datos (ContextFactory esta inyectado en este componente)
+        using (var usuarioRepository = new UsuarioRepository(ContextFactory.CreateDbContext()))
+        {
+            //Intento de obtención del usuario. Si no se lo encuentra, se trae todos
+            usuarioBuscadoPorId = await usuarioRepository.GetUsuario(Int32.Parse(textoDelUsuario));
+
+            if (usuarioBuscadoPorId == null) listaDeUsuarios = await usuarioRepository.GetUsuariosAsync();
+
+            mostrarTextoCargando = false;
+
+            /*Aviso al componente que debe renderizarse nuevamente
+            Mas detalles sobre StateHasChanged() y porque en este caso es necesario en la sección correspondiente
+            (Se puede comentar para ver cual es el efecto que causa no incluirlo)*/
+            StateHasChanged();
+        }
+    }
+}

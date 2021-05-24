@@ -1,0 +1,60 @@
+﻿@page "/comunicacion1"
+
+<h3>Comunicación 1</h3>
+
+<div id="descripcion-comunicacion">
+    En este bloque puede verse como este componente interactua con dos componentes externos enviando y recibiendo
+    datos. Incluso la comunicación entre dos componentes que se encuentran al mismo nivel, los cuales son llamados
+    hijos en el ejemplo.
+</div>
+
+<div id="contenedor-ejemplo-padre" class="mt-4 bg-secondary text-white p-2">
+    <div id="descripcion-componente-padre">
+        El primer input se encuentra dentro de este mismo componente. Al pulsar el botón <code>Actualizar</code>, se envia
+        la información a los otros dos componentes, los cuales tendran en sus inputs el mismo valor.
+    </div>
+    <div id="formulario-componente-padre" class="mt-2">
+        <input type="text" id="input-componente-padre" @bind="InputTextParentValue" />
+        <button class="btn btn-success ml-2" @onclick="HandleUpdateFromParentComponent">Actualizar</button>
+    </div>
+</div>
+
+<div id="contenedor-ejemplo-hijos" class="mt-4 bg-light">
+    <div class="row">
+        <ComponenteHijo NombreComponente="A" @ref="HijoA" SetInputParentValue="SetInputParentValue" />
+        <ComponenteHijo NombreComponente="B" @ref="HijoB" SetInputParentValue="SetInputParentValue" />
+    </div>
+</div>
+
+
+@code {
+    //Input que contiene lo que el usuario escribe en el input de este componenente
+    public string InputTextParentValue { get; set; }
+
+    //Se crean referencias a los componentes hijos. Esto permite acceder a sus métodos.
+    public ComponenteHijo HijoA { get; set; }
+    public ComponenteHijo HijoB { get; set; }
+
+    //Al pusar el botón Actualizar en este componente, se accede a los métodos hijos dando como parámetro
+    //el texto del input de este componente. De esta manera se actualizan los componentes hijos solo al pusar el botón
+    public void HandleUpdateFromParentComponent()
+    {
+        HijoA.UpdateWithParentValue(InputTextParentValue);
+        HijoB.UpdateWithParentValue(InputTextParentValue);
+    }
+
+    //Método que actualiza el valor del input de este componente. El método es compartido con los componentes hijos y 
+    //llamado por estos
+    public void SetInputParentValue(string newValue)
+    {
+        InputTextParentValue = newValue;
+
+        //Al tener referencias de ambos hijos, puedo actualizar el valor del hijo distinto al que invoco este método
+        //IMPORTANTE: En la parte de estado global se verá un caso similar, pero con el patrón AppState que no 
+        //requerirá preguntar por cada componenete
+        if (HijoA.InputTextChildValue != newValue) HijoA.InputTextChildValue = newValue;
+        if (HijoB.InputTextChildValue != newValue) HijoB.InputTextChildValue = newValue;
+
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,104 @@
+﻿@page "/estadoglobal"
+
+@inject ProtectedLocalStorage ProtectedLocalStore
+@inject AppState AppState
+
+<h3>Estado Global</h3>
+
+<div id="descripcion-estado-global">
+    En el ejemplo de <NavLink href="comunicacion2">Comunicación 2</NavLink> se demuestra como usar un patrón de
+    estado para compartir propiedades entre diferentes componentes. Para un estado compartido en toda la aplicación
+    el concepto es el mismo. En la carpeta Data existe una clase llamada <code>AppState</code> que simplemente
+    tiene dos atributos, un booleano llamado <code>IsLoggedIn</code>, y un entero nulleable llamado
+    <code>UserId</code>. A su vez, hay una clase de apoyo llamada <code>LoginStatus</code> con similares atributos.
+</div>
+
+<div id="explicacion-estado-global">
+    <div class="mb-4">
+        Debajo hay un botón que al presionarlo simulará un login exitoso. Esto modificará las propiedades de 
+        <code>AppState</code>. También tendremos la opción de "deslogearnos" ya que cambiará el botón disponible.
+    </div>
+    <div class="mb-4">
+        Lo que esta sucediento de fondo son varias cosas...
+        <ul>
+            <li>Los valores del estado se setean de diferente manera al logearnos o deslogearnos.</li>
+            <li>Al logearnos y deslogearnos estamos haciendo uso de LocalStorage, es por esto que el estado se 
+            mantiene al refrescar la página y no solamente al cambiar entre vistas.</li>
+            <li>Si entramos a otra página y refrescamos también recuperamos el estado. Esto es debido a que no solo 
+            el estado se revisa globalmente (el cual se pierde al refrescar la pagina). LocalStorage también se 
+            esta revisando globalmente. Revisar el componente <code>StateHelper</code> para mas detalles.</li>
+            <li>Si esta autenticado, además de ver el botón correspondiente, ingresando en 
+            <NavLink href="/">Home</NavLink> verás un mensaje oculto. Por otro lado, en el navbar superior junto al 
+            link de About deberías visualizar entre parentesis la frase "Hola mundo!"</li>
+        </ul>
+    </div>
+</div>
+
+<div id="informacion-isloggedin" class="my-3 font-weight-bold">
+    Usuario logeado: @loginState <br/>
+    Último renderizado: @DateTime.Now
+</div>
+
+<div id="contenedor-fake-login">
+    @if (!loginState)
+    {
+        <button class="btn btn-success" @onclick="Login">"Logearse con Id @idHardcodeada"</button>
+    }
+    else
+    {
+        <button class="btn btn-danger" @onclick="Logout">"Deslogearse para la Id @userId"</button>
+    }
+</div>
+
+@code {
+    //Id hardcodeada de quien se logea, podría ser la id correspondiente a un usuario en la base de datos
+    private int idHardcodeada = 81;
+
+    //Variables auxiliares para mostrar contenido según el estado del usuario
+    private int? userId;
+    private bool loginState = false;
+
+    //Método que se ejecuta al presionar el botón de Login
+    private async Task Login()
+    {
+        /*Se envia la id obtenida al setter de AppState. Al setear siempre IsLoggedIn estará en true, es por esto 
+        que no se envia el argumento en este ejemplo*/
+        AppState.SetIsLoggedIn(idHardcodeada);
+
+        /*Seteo de LocalStorage con apoyo de la clase LoginStatus. Sobre porque el uso de esta clase ver en el 
+        componente StateHelper cuando se recupera el dato para la explicación*/
+        await ProtectedLocalStore.SetAsync("userState", new LoginStatus(true, idHardcodeada));
+
+        //Se indica que el componente debe renderizarse nuevamente
+        StateHasChanged();
+    }
+
+    //Método que se ejecuta al presionar Logout
+    private async Task Logout()
+    {
+        //Método que nullea los atributos de AppState
+        AppState.ClearState();
+
+        //Se elimina LocalStorage
+        await ProtectedLocalStore.DeleteAsync("userState");
+
+        //Reset de variables auxiliares
+        loginState = false;
+        userId = null;
+
+        //Se indica que el componente debe renderizarse
+        StateHasChanged();
+    }
+
+    /*Método que se ejecuta al renderizarse. Comprobación de estado existente para actualizar las variables
+    (El estado se seteo en StateHelper por ejemplo antes de llamar este componenente)*/
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if(AppState.IsLoggedIn && userId == null)
+        {
+            loginState = AppState.IsLoggedIn;
+            userId = AppState.UserId;
+            StateHasChanged();
+        }
+    }
+}

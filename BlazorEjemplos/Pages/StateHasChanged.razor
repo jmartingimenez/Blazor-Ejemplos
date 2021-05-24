@@ -1,0 +1,35 @@
+﻿@page "/statehaschanged"
+
+<h3>StateHasChanged</h3>
+
+Se puede forzar renderizar nuevamente un componente utilizando <code>StateHasChanged()</code>. Por otro lado, se puede 
+sobrecargar el método <code>ShouldRender()</code> para determinar si <code>StateHasChanged()</code> realiza el renderizado 
+o no.
+
+<div id="contenedor-ejemplo-statehaschanged" class="my-4">
+    <div id="ejemplo-statehaschanged-ultimo-renderizado">Último renderizado: @DateTime.Now</div>
+    <button id="btn-actualizar-estado" class="btn btn-success" @onclick="HandleRefreshState">Actualizar</button>
+    <div id="contenedor-toggle-activar-renderizado">
+        Habilitar renderizado al pulsar el botón: 
+        <input id="checkbox-toggle-renderizado" type="checkbox" @onclick="HandleToggleEnableRender" checked/>
+    </div>
+</div>
+
+@code {
+    private bool enableRender = true;
+
+    private void HandleRefreshState()
+    {
+        StateHasChanged();
+    }
+
+    private void HandleToggleEnableRender()
+    {
+        enableRender = !enableRender;
+    }
+
+    protected override bool ShouldRender()
+    {
+        return enableRender;
+    }
+}

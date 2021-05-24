@@ -1,0 +1,42 @@
+﻿<div class="contenedor-ejemplo-hijo border border-info col">
+    <div class="descripcion-componente-hijo">
+        <small>
+            Este componente corresponde al hijo @NombreComponente. El funcionamiento es el mismo. Al pulsar el botón
+            <code>Actualizar</code> en el componente padre, este input tomará su valor (Padre -> Hijo). Si se modifica
+            el input de este componente y se lo actualiza, el padre tomará también este valor (Hijo -> Padre).
+        </small>
+    </div>
+    <div class=" formulario-componenete-hijo mt-2">
+        <input type="text" class="input-componente-hijo" @bind="InputTextChildValue" />
+        <button class="btn btn-success ml-2" @onclick="HandleUpdateFromChildComponent">Actualizar</button>
+    </div>
+</div>
+
+@code {
+    //Parámetro que llega desde el componente padre con el nombre de este componente en la descripción
+    [Parameter] public string NombreComponente { get; set; }
+
+    //Método del componente padre. De esta manera se logra ejecutarlo
+    [Parameter] public Action<string> SetInputParentValue { get; set; }
+    private void InvokeSetInputParentValue()
+    {
+        SetInputParentValue?.Invoke(InputTextChildValue);
+    }
+
+    //Variable que contendrá el valor escrito en el input de este componente
+    public string InputTextChildValue { get; set; }
+
+    //Método que actualiza el input de este componente con el valor del input del componente padre. Llamado desde el 
+    //componente padre a través de la referencia
+    public void UpdateWithParentValue(string parentValue)
+    {
+        InputTextChildValue = parentValue;
+        StateHasChanged();
+    }
+
+    //Método que se ejecuta al presionar el botón "Actualizar" en este componente. Llamará al método del componente padre
+    public void HandleUpdateFromChildComponent()
+    {
+        InvokeSetInputParentValue();
+    }
+}

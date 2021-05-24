@@ -1,0 +1,74 @@
+﻿@inject ComunicacionState ComunicacionState
+@implements IDisposable
+
+<div class="contenedor-ejemplo-hijo border border-info my-3 p-2">
+    <div class="descripcion-componente-hijo">
+        <div class="text-info">Valor de estado: @ComunicacionState.InputValue</div>
+        <div class="fecha-ultimo-renderizado">Último renderizado: @DateTime.Now</div>
+        <small>
+            Este componente corresponde al hijo @NombreComponente. El funcionamiento es el mismo. Al pulsar el botón
+            <code>Actualizar</code> en el componente padre, este input tomará su valor (Padre -> Hijo). Si se modifica
+            el input de este componente y se lo actualiza, el padre tomará también este valor (Hijo -> Padre).
+        </small>
+    </div>
+    <div class=" formulario-componenete-hijo mt-2">
+        <input type="text" class="input-componente-hijo" @bind="InputTextChildValue" />
+        <button class="btn btn-success ml-2" @onclick="HandleUpdateComunicacionState">Actualizar</button>
+    </div>
+</div>
+
+
+@code {
+    //Parámetro que llega desde el componente padre con el nombre de este componente en la descripción
+    [Parameter] public string NombreComponente { get; set; }
+
+    //Variable que contendrá el valor escrito en el input de este componente
+    public string InputTextChildValue { get; set; }
+
+    //Variable que contiene el valor del input de este componente una vez el valor se setea (botón Actualizar)
+    public string ChildValue { get; set; }
+
+    //Al presionar el botón, se toma el valor del input y se lo guarda en el estado inyectado
+    public void HandleUpdateComunicacionState()
+    {
+        //Se guarda lo escrito en el estado
+        ComunicacionState.SetInputValue(InputTextChildValue);
+
+        //La variable auxiliar que guarda el valor seteado se setea
+        ChildValue = InputTextChildValue;
+    }
+
+    /*La lógica es para la misma funcionalidad descrita en el componente padre.
+    El uso en este ejemplo esta relacionado con ciertas validaciones particulares. No siempre sería necesario...
+    - Al cambiar entre vistas y volver se vuelve a setear el valor del input
+    - Al poner un valor en el input distinto al del estado, pero luego actualizar desde de otro componente
+    (el valor toma el nuevo estado)*/
+    protected override void OnAfterRender(bool firstRender)
+    {
+        //Misma lógica descrita en el componente padre
+        if (ChildValue != ComunicacionState.InputValue && ComunicacionState.InputValue != null)
+        {
+            ChildValue = ComunicacionState.InputValue;
+            InputTextChildValue = ChildValue;
+            StateHasChanged();
+        }
+
+        //Misma lógica descrita en el componente padre
+        if(ChildValue == ComunicacionState.InputValue && ChildValue != InputTextChildValue)
+        {
+            ChildValue = InputTextChildValue;
+        }
+    }
+
+    //Implementación de IDisposable para evitar memory leaks
+    protected override void OnInitialized()
+    {
+        ComunicacionState.OnChange += StateHasChanged;
+    }
+
+    //Implementación de IDisposable para evitar memory leaks
+    public void Dispose()
+    {
+        ComunicacionState.OnChange -= StateHasChanged;
+    }
+}

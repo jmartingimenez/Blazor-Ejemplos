@@ -1,0 +1,61 @@
+﻿@page "/"
+
+@inject AppState AppState
+
+<h1>Ejemplos de Blazor</h1>
+
+@if (AppState.IsLoggedIn)
+{
+    <div class="my-5 jumbotron">
+        Si te "autenticaste" en la sección <NavLink href="estadoglobal">EstadoGlobal</NavLink> deberías
+        ver este texto.
+    </div>
+}
+
+<div class="my-4">
+    Este proyecto contiene varios ejemplos de situaciones típicas en Blazor. Ver cada opción en el
+    menú de la izquierda para mas detalles de cada uno. No quité nada del template por default, simplemente no esta
+    visible. Entrar por /counter o /fetchdata.
+</div>
+
+<div id="aviso-script-bdd" class="mb-4 font-weight-bold">
+    IMPORTANTE: Se incluye dentro de la carpeta SQL un script de base de datos que será necesario ejecutar para
+    el correcto funcionaiento del proyecto. La base de datos debería llamarse "BlazorTest" para no necesitar 
+    hacer modificaciones adicionales.
+    <span class="text-danger">
+        Se recomienda leer cada sección en el orden mostrado (Empezando por esta).
+    </span>
+</div>
+
+<div id="recomendacion-ciclo-de-vida" class="mb-4">
+    Un buen punto de partida previo a los ejemplos es tener en mente el ciclo de vida en Blazor.
+    Este link es bastante conciso y contiene ejemplos e imagenes: <a href="@urlCicloDeVida" target="_blank">LINK</a>.
+</div>
+
+<div id="recomendacion-ejecucion-debugging">
+    El proyecto se puede ejecutar con <code>dotnet watch --project BlazorTest run</code>. Esto permite que al realizar
+    una modificación se actualice todo de forma automática. Como contrapartida no se puede debugear, el código no se
+    detiene en breakpoints. Si queremos hacer debugging, simplemente ejecutar el proyecto de manera tradicional. El
+    incoveniente de esta manera, es que los cambios en el código no se ven reflejeados hasta reiniciar el proyecto.<br />
+    Si se quiere alternar entre una forma y otra se puede ejecutar el proyecto con <code>dotnet watch</code> y luego en
+    <small>Debug -> Attach to process</small> seleccionar el proceso correspondiente. Esto alternará entre los dos
+    métodos. Al guardar un cambio se actualizará todo de forma automática perdiendo la posibilidad de debugear, en este
+    caso simplemente hacer <small>Debug -> Reattach to process</small> o <code>Shift + Alt + P</code>.
+</div>
+
+@code{
+    private string urlCicloDeVida = "https://www.meziantou.net/asp-net-core-blazor-components-lifecycle.htm";
+    
+    //Flag para determinar si el usuario esta autenticado. Explicado luego en sección "EstadoGlobal"
+    private bool loginState = false;
+
+    //Sincronización del flag con el estado. Ver la sección "EstadoGlobal" para la explicación
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (AppState.IsLoggedIn && !loginState)
+        {
+            loginState = AppState.IsLoggedIn;
+            StateHasChanged();
+        }
+    }
+}
