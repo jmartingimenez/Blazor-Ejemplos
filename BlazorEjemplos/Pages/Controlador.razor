@@ -1,0 +1,139 @@
+﻿@page "/controlador"
+@inject NavigationManager Navigator
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+@if (verPantallaDeCarga)
+{
+    <div><h1>CARGANDO...</h1></div>
+}
+else
+{
+    <h3>Controlador</h3>
+
+    <div id="descripcion-controlador">
+        <div class="mb-4">
+            Este ejemplo demuestra como incluir y hacer requests hacia controladores. Además, el
+            ejemplo demuestra como descargar archivos desde un controlador.
+        </div>
+        <div id="descripcion-controlador-paso-a-paso" class="mb-4">
+            El paso a paso para lograr esto sería lo siguiente...
+            <ol class="my-1">
+                <li>Crear una carpeta llamada <code>Controllers</code>.</li>
+                <li>
+                    Crear un controlador. En este ejemplo utilizo un controlador MVC, pero uno para API debería funcionar
+                    sin problemas.
+                </li>
+                <li>
+                    Editar Startup.cs para incluir: Soporte MVC e Inyección de cliente HTTP.<strong>
+                        Ver código debajo
+                        de este listado
+                    </strong>.
+                </li>
+            </ol>
+
+            Para este ejemplo en particular...
+            <ol>
+                <li>Se hace uso de la librería <code>ClosedXML</code>.</li>
+                <li>Se usa un archivo javascript para este ejemplo: <code>~/wwwroot/js/archivoManager.js</code>.</li>
+            </ol>
+        </div>
+    </div>
+
+    <h5 class="mb-2">Startup.cs</h5>
+
+    <div id="descripcion-controlador-startup" class="mb-4">
+        Dentro del método <code>ConfigureServices()</code>, previo a <code>.AddRazorPages()</code> se agregó lo
+        siguiente...
+        <pre class="my-1">
+            services.AddMvc(options => options.EnableEndpointRouting = false)
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+        </pre>
+
+        Dentro del método <code>ConfigureServices()</code>, se agrego la posibilidad de inyectar un cliente Http...
+        <pre class="my-1">
+            if (services.All(x => x.ServiceType != typeof(HttpClient)))
+            {
+                services.AddScoped(
+                    s =>
+                    {
+                        var navigationManager = s.GetRequiredService@("<NavigationManager>()");
+                        return new HttpClient
+                        {
+                            BaseAddress = new Uri(navigationManager.BaseUri)
+                        };
+                    });
+            }
+        </pre>
+
+        Dentro del método <code>Configure()</code>, entre <code>.UseRouting()</code> y <code>.UseEndpoints()</code>,
+        se agregó lo siguiente...
+        <pre>
+            app.UseMvcWithDefaultRoute();
+        </pre>
+    </div>
+
+    <h5 class="mb-2">Probar...</h5>
+
+
+    <div class="container">
+        <div class="row">
+            <button class="btn btn-success" @onclick="HandleGetRandomNumberFromController">
+                Hace clic para obtener un número desde el controller: @numeroDesdeController
+            </button>
+            <a class="btn btn-outline-success" download href="@(GetUrlAction("GetSampleExcelByHref", "Ejemplo"))" target="_blank">
+                Obtener Excel desde controlador usando un elemento A (GET)
+            </a>
+        </div>
+        <div class="row">
+            <button class="btn btn-info" @onclick="HandleGetSampleExcelAsByteArrayFromGetRequest">
+                Obtener un Excel desde el controller por método (GET)
+            </button>
+            <button class="btn btn-outline-info" @onclick="HandleGetSampleExcelAsByteArrayFromPostRequest">
+                Obtener un Excel desde el controller por método (POST)
+            </button>
+        </div>
+    </div>
+
+}
+
+@code {
+    //Flag para mostrar una pantalla de carga mientras duran los requests
+    private bool verPantallaDeCarga = false;
+
+    //Variable que guarda el número obtenido desde el controlador
+    private string numeroDesdeController = string.Empty;
+
+    //Simulación del @Url.Action()
+    private string GetUrlAction(string action, string controller)
+    {
+        return Navigator.BaseUri + string.Format("{0}/{1}", controller, action);
+    }
+
+    //Se obtiene un número entre 1 y 10 desde el controlador (/Ejemplo/GetRandomNumber)
+    private async Task HandleGetRandomNumberFromController()
+    {
+        verPantallaDeCarga = true;
+        numeroDesdeController = await Http.GetStringAsync(GetUrlAction("GetRandomNumber", "Ejemplo"));
+        verPantallaDeCarga = false;
+    }
+
+    //Se obtiene desde un request GET el excel en forma de array de bytes
+    private async Task HandleGetSampleExcelAsByteArrayFromGetRequest()
+    {
+        verPantallaDeCarga = true;
+        var response = await Http.GetByteArrayAsync(GetUrlAction("GetSampleExcelAsByteArray", "Ejemplo"));
+        verPantallaDeCarga = false;
+        await JS.InvokeAsync<object>("saveAsFile", "excel-por-get.xlsx", Convert.ToBase64String(response));
+    }
+
+    //Se obtiene desde un request POST el excel en forma de array de bytes
+    private async Task HandleGetSampleExcelAsByteArrayFromPostRequest()
+    {
+        verPantallaDeCarga = true;
+        var response = await Http.PostAsync(GetUrlAction("GetSampleExcelAsByteArray", "Ejemplo"), null);
+        var content = await response.Content.ReadAsByteArrayAsync();
+        await JS.InvokeAsync<object>("saveAsFile", "excel-por-post.xlsx", Convert.ToBase64String(content));
+        verPantallaDeCarga = false;
+    }
+}

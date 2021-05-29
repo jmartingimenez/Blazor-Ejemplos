@@ -3,6 +3,7 @@ using BlazorEjemplos.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace BlazorEjemplos
@@ -37,6 +39,21 @@ namespace BlazorEjemplos
 
             services.AddScoped<ComunicacionState, ComunicacionState>();
             services.AddScoped<AppState, AppState>();
+            services.AddMvc(options => options.EnableEndpointRouting = false)
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+            // Server Side Blazor doesn't register HttpClient by default
+            if (services.All(x => x.ServiceType != typeof(HttpClient)))
+            {
+                services.AddScoped(
+                    s =>
+                    {
+                        var navigationManager = s.GetRequiredService<NavigationManager>();
+                        return new HttpClient
+                        {
+                            BaseAddress = new Uri(navigationManager.BaseUri)
+                        };
+                    });
+            }
 
             services.AddRazorPages();
             services.AddServerSideBlazor();
@@ -58,6 +75,8 @@ namespace BlazorEjemplos
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseMvcWithDefaultRoute();
 
             app.UseEndpoints(endpoints =>
             {
